@@ -477,10 +477,133 @@ def slot_texture(R, L):
     return out, False
 
 
+_CLOUDS = {}
+
+
+def depth_cloud(R, L):
+    """World-space point cloud from a clean plate + relative inverse depth (0 far .. 1 near)."""
+    key = (L["src"], L.get("depth"), str(L.get("fov", 45)), L.get("feather", 0), L.get("near", 2.0), L.get("far", 30.0), tuple(L.get("pos", (0, 0, 0))),
+           L.get("yaw", 0), L.get("pitch", 0), L.get("max_points", 900000), tuple(L.get("gmap") or ()), str(L.get("grade")))
+    if key in _CLOUDS:
+        return _CLOUDS[key]
+    rgba = load_rgba(R.P.abspath(L["src"]))
+    if L.get("gmap"):
+        rgba = gradient_map(rgba, L["gmap"])
+    if L.get("grade"):
+        # colour grade a colourised plate: multiply tint, lift/gain, desaturate
+        gd = L["grade"]
+        rgb = rgba[..., :3]
+        sat = float(gd.get("saturation", 1.0))
+        lum = rgb @ np.array([0.299, 0.587, 0.114], np.float32)
+        rgb = lum[..., None] + (rgb - lum[..., None]) * sat
+        rgb = rgb * _rgb(gd.get("tint", "#ffffff")) * float(gd.get("gain", 1.0)) + _rgb(gd.get("lift", "#000000"))
+        rgba[..., :3] = np.clip(rgb, 0, 1)
+    dpath = R.P.abspath(L.get("depth") or L["src"].rsplit(".", 1)[0] + "_depth.npy")
+    d = np.load(dpath).astype(np.float32)
+    h, w = rgba.shape[:2]
+    d = cv2.resize(d, (w, h), interpolation=cv2.INTER_LINEAR)
+    s = max(1.0, math.sqrt(h * w / float(L.get("max_points", 900000))))
+    if s > 1.0:
+        w2, h2 = int(w / s), int(h / s)
+        rgba = cv2.resize(rgba, (w2, h2), interpolation=cv2.INTER_AREA)
+        d = cv2.resize(d, (w2, h2), interpolation=cv2.INTER_AREA)
+        h, w = h2, w2
+    near, far = float(L.get("near", 2.0)), float(L.get("far", 30.0))
+    inv = 1.0 / far + d * (1.0 / near - 1.0 / far)
+    z = 1.0 / inv
+    fov = L.get("fov", 45)
+    if fov == "auto" or isinstance(fov, dict):
+        # widen the reprojection so the plate covers the camera frame (plus margin) in both directions
+        cfg = fov if isinstance(fov, dict) else {}
+        cv = math.radians(float(cfg.get("camera_fov", 40)))
+        margin = float(cfg.get("margin", 1.18))
+        tv = math.tan(cv / 2) * margin
+        th = math.tan(cv / 2) * (16 / 9) * margin / (w / h)
+        fov = math.degrees(2 * math.atan(max(tv, th)))
+        fov = min(fov, float(cfg.get("max", 100)))
+    f = (h / 2) / math.tan(math.radians(float(fov)) / 2)
+    vv, uu = np.mgrid[0:h, 0:w].astype(np.float32)
+    X = (uu - w / 2) / f * z
+    Y = -(vv - h / 2) / f * z
+    P = np.stack([X, Y, z], -1).reshape(-1, 3).astype(np.float64)
+    Rm = rot_matrix(float(L.get("pitch", 0)), float(L.get("yaw", 0)), 0)
+    P = P @ Rm.T + np.array(L.get("pos", (0, 0, 0)), np.float64)
+    fe = float(L.get("feather", 0))
+    al = np.ones((h, w), np.float32)
+    if fe > 0:
+        def ramp(n):
+            k = max(1, int(n * fe))
+            r = np.ones(n, np.float32)
+            x = np.linspace(0, 1, k)
+            r[:k] = x * x * (3 - 2 * x)
+            r[n - k:] = np.minimum(r[n - k:], r[:k][::-1])
+            return r
+        al = ramp(h)[:, None] * ramp(w)[None, :]
+    col = np.concatenate([rgba[..., :3].reshape(-1, 3), al.reshape(-1, 1)], 1).astype(np.float32)
+    # point footprint in world units (pixel size at its depth) for splat sizing
+    foot = (z / f).reshape(-1).astype(np.float32)
+    out = (P, col, foot, (w, h))
+    _CLOUDS[key] = out
+    return out
+
+
+def splat(cloud, cam, opacity=1.0, fill=3):
+    P, col, foot, _ = cloud
+    W, H = cam.W, cam.H
+    Pc = cam.to_cam(P)
+    z = Pc[:, 2]
+    ok = z > 0.05
+    Pc, c, ft, z = Pc[ok], col[ok], foot[ok], z[ok]
+    x = cam.W / 2 + cam.f * Pc[:, 0] / z
+    y = cam.H / 2 - cam.f * Pc[:, 1] / z
+    inb = (x > -2) & (x < W + 2) & (y > -2) & (y < H + 2)
+    x, y, z, c, ft = x[inb], y[inb], z[inb], c[inb], ft[inb]
+    if not len(z):
+        return None
+    order = np.argsort(-z)  # far first, near last (last write wins)
+    x, y, z, c, ft = x[order], y[order], z[order], c[order], ft[order]
+    img = np.zeros((H, W, 4), np.float32)
+    zb = np.full((H, W), np.inf, np.float32)
+    rad = np.clip(ft * cam.f / z, 0.5, 6.0)   # projected size of one source pixel
+    xi, yi = x.astype(np.int32), y.astype(np.int32)
+    for dx, dy, lim in ((0, 0, 0.0), (1, 0, 0.9), (0, 1, 0.9), (1, 1, 1.3), (-1, 0, 1.8), (0, -1, 1.8), (2, 0, 2.6), (0, 2, 2.6)):
+        sel = rad > lim
+        xs, ys = np.clip(xi[sel] + dx, 0, W - 1), np.clip(yi[sel] + dy, 0, H - 1)
+        img[ys, xs] = c[sel]
+        zb[ys, xs] = z[sel]
+    m = np.isfinite(zb).astype(np.float32)
+    # close small holes by propagating neighbours
+    for _ in range(fill):
+        hole = m < 0.5
+        if not hole.any():
+            break
+        k = np.ones((3, 3), np.float32)
+        sm = cv2.filter2D(m, -1, k, borderType=cv2.BORDER_CONSTANT)
+        si = cv2.filter2D(img * m[..., None], -1, k, borderType=cv2.BORDER_CONSTANT)
+        grow = hole & (sm > 2.5)
+        img[grow] = si[grow] / sm[grow][:, None]
+        m[grow] = 1
+    a = m[..., None] * img[..., 3:4] * opacity
+    out = np.zeros((H, W, 4), np.float32)
+    out[..., :3] = img[..., :3] * a
+    out[..., 3:4] = a
+    zmed = float(np.median(z))
+    return {"type": "raster", "depth": zmed, "img": out}
+
+
 def build(L, S, cam, t, ctx, R):
     """Turn one layer spec into drawables."""
     kind = L.get("kind", "image")
     root = R.P.root
+    if kind == "depth3d":
+        d = splat(depth_cloud(R, L), cam, _v(L.get("opacity", 1.0), t, ctx, 1.0), int(L.get("fill", 3)))
+        if d is None:
+            return []
+        d["dof"] = L.get("dof", False)
+        d["fog"] = L.get("fog", True)
+        if "sort_depth" in L:
+            d["depth"] = float(L["sort_depth"])
+        return [d]
     if kind == "image":
         key = ("img", L["src"], tuple(L.get("crop") or ()), L.get("frame"), L.get("feather"), L.get("key_white"), L.get("invert"),
                tuple(L.get("gmap") or ()))

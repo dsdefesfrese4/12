@@ -1,0 +1,83 @@
+meta: {title: intro_v4, fps: 24, audio: song.mp3, beats: beats.json, start: 0.0, end: 25.2, font: assets/fonts/ShipporiMinchoB1-Medium.ttf}
+style:
+  effects: [{type: grain, amount: 0.055}, {type: vignette, amount: 0.68}, {type: flicker, amount: 0.04}]
+shots:
+  # A — night sky, utility pole. Stars, a red thread hangs from the wire.
+  - id: sky
+    start: 0.0
+    transition: {type: fade, dur: 2.4}
+    scene:
+      bg: ["#2a3a6e", "#2c3c70"]
+      fov: 40
+      fog: {color: "#06070f", density: {keys: [[6.0, 0.0], [6.8, 0.35]]}}
+      light: {dir: [0.2, -0.3, 1], color: "#c8ccf0", ambient: 0.95}
+      camera:
+        keys:
+          - {at: 0.0, pos: [0.0, -0.3, -0.4], look: [0.3, 4.0, 14], roll: -3}
+          - {at: 1.0, pos: [0.3, 0.0, 1.8], look: [0.3, -0.3, 14], roll: 2, ease: sine}
+        handheld: 0.008
+      layers:
+        - {kind: particles, preset: stars, volume: [[-40, 40], [-8, 40], [40, 60]], count: 1400, opacity: 0.9, fog: false}
+        - {kind: depth3d, src: color/c1_p21_p01_t.png, max_points: 2200000, depth: color/c1_p21_p01_t_depth.npy, grade: {tint: "#c8d0ff", gain: 1.0, saturation: 1.0}, fov: {camera_fov: 40, margin: 1.1, max: 70}, near: 4.0, far: 30, pos: [0, 0, 0], feather: 0.06}
+        - {kind: ribbon, pos: [0.5, 1.0, 4.0], length: {keys: [[1.5, 0.2], [6.5, 1.9]], ease: ease_out}, width: 0.03, sway: 0.08, color: "#b01c28", twist: 6}
+        - {kind: particles, preset: dust, volume: [[-4, 4], [-3, 5], [1, 10]], count: 120, opacity: 0.25, color: "#c8ccf0", speed: 0.2}
+  # B — the empty kitchen: a remote on the table, nobody comes home. Words of abuse drift in the air.
+  - id: kitchen
+    start: 6.80
+    transition: {type: fade, dur: 1.0}
+    scene:
+      bg: ["#0b0f10", "#020304"]
+      fov: 40
+      fog: {color: "#05090a", density: {keys: [[6.8, 0.35], [8.0, 0.05], [11.8, 0.05], [12.82, 0.35]]}}
+      light: {dir: [0.3, -0.5, 1], color: "#e0ece8", ambient: 0.92}
+      camera:
+        keys:
+          - {at: 0.0, pos: [-0.35, 0.1, -0.3], look: [0.0, -0.2, 10], roll: -1}
+          - {at: 1.0, pos: [0.3, -0.05, 0.6], look: [0.3, -0.4, 10], roll: 1.5, ease: sine}
+        handheld: 0.008
+      layers:
+        - {kind: depth3d, src: color/c16_p17_p02_t.png, max_points: 2200000, depth: color/c16_p17_p02_t_depth.npy, grade: {tint: "#b8c8d0", gain: 0.82, saturation: 0.6, lift: "#05080a"}, fov: auto, near: 3.2, far: 14, pos: [0, 0, 0], feather: 0.04}
+        - {kind: words, layout: cloud, words: ["しね", "どろぼう", "寄生虫", "ゴミ", "消えろ", "くさい"], count: 6, volume: [[-2.4, -0.7], [-0.5, 1.0], [2.0, 3.6]],
+           size: 150, color: "#0a0e10", height: 0.4, opacity: {keys: [[7.6, 0], [10.5, 0.75]]}, font: assets/fonts/ShipporiMinchoB1-Medium.ttf, light: false}
+        - {kind: words, layout: cloud, words: ["くさい", "消えろ", "ゴミ", "寄生虫", "どろぼう", "しね"], seed: 9, count: 6, volume: [[0.7, 2.4], [-0.5, 1.0], [2.0, 3.6]],
+           size: 150, color: "#0a0e10", height: 0.4, opacity: {keys: [[7.6, 0], [10.5, 0.75]]}, font: assets/fonts/ShipporiMinchoB1-Medium.ttf, light: false}
+        - {kind: particles, preset: dust, volume: [[-4, 4], [-2, 3], [1, 10]], count: 180, opacity: 0.3, color: "#d6e2de", speed: 0.25}
+  # C — the pound at night: the place Chappy was taken. Bars between us and the door.
+  - id: pound
+    start: 12.82
+    transition: {type: fade, dur: 1.0}
+    scene:
+      bg: ["#090b12", "#020306"]
+      fov: 40
+      fog: {color: "#05070c", density: {keys: [[12.82, 0.35], [14.0, 0.04], [17.8, 0.04], [18.81, 0.35]]}}
+      light: {dir: [0.3, -0.5, 1], color: "#d8dcf0", ambient: 0.92}
+      camera:
+        keys:
+          - {at: 0.0, pos: [-0.9, -0.2, -0.8], look: [0.3, 0.3, 14], roll: 0}
+          - {at: 1.0, pos: [0.4, 0.1, 1.2], look: [0.1, 0.4, 14], roll: -1.5, ease: sine}
+        handheld: 0.008
+      layers:
+        - {kind: depth3d, src: color/c3_p22_p04_t.png, max_points: 2200000, depth: color/c3_p22_p04_t_depth.npy, grade: {tint: "#7a88c0", gain: 0.75, saturation: 0.7, lift: "#04060c"}, fov: auto, near: 3.5, far: 22, pos: [0, 0, 0], feather: 0.04}
+        - {kind: particles, preset: snow, volume: [[-6, 6], [-3, 5], [1, 16]], count: 260, opacity: 0.45, color: "#dfe4f6", speed: 0.35}
+        - {kind: particles, preset: stars, volume: [[-30, 30], [6, 30], [40, 60]], count: 600, opacity: 0.6, fog: false}
+  # D — the beam. The ribbon is already tied. The red thread from the sky ends here.
+  - id: beam
+    start: 18.81
+    transition: {type: fade, dur: 1.0}
+    scene:
+      bg: ["#0a0d16", "#020306"]
+      fov: 40
+      fog: {color: "#060810", density: {keys: [[18.81, 0.35], [20.0, 0.04], [24.0, 0.04], [24.9, 0.6]]}}
+      light: {dir: [0.3, -0.5, 1], color: "#ffe2bc", ambient: 0.92}
+      camera:
+        keys:
+          - {at: 0.0, pos: [0.3, -1.2, -0.6], look: [-0.3, 0.2, 8], roll: 4}
+          - {at: 1.0, pos: [-0.15, -0.5, 0.6], look: [-0.4, 0.6, 8], roll: 0, ease: sine}
+        handheld: 0.006
+      layers:
+        - {kind: depth3d, src: color/c1_p36_p03_t.png, max_points: 2200000, depth: color/c1_p36_p03_t_depth.npy, grade: {tint: "#ffe0c0", gain: 0.95, saturation: 0.85}, fov: auto, near: 2.8, far: 12, pos: [0, 0, 0], feather: 0.06}
+        - {kind: glow, pos: [2.5, 1.5, 9], width: 6, color: "#3a2c18"}
+        - {kind: particles, preset: dust, volume: [[-4, 4], [-3, 3], [1, 10]], count: 220, opacity: 0.4, color: "#ffe8c8", speed: 0.2}
+texts:
+  - {start: 8.2, end: 12.4, text: "タコピーの原罪", pos: [0.5, 0.47], size: 70, vertical: true, font: assets/fonts/ZenOldMincho-Black.ttf, color: "#d6d0c4", stroke: {width: 0},
+     kinetic: {in: blur_in, out: blur, stagger: 0.16, in_dur: 1.0, out_dur: 0.8, tracking: 0.38, shadow: {color: "#000000", offset: [0, 0], blur: 12, opacity: 0.8}}}
