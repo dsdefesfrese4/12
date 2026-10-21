@@ -1,0 +1,9 @@
+# copyrighted source material / large renders — keep local
+projects/*/pages/
+projects/*/panels/
+projects/*/cutouts/
+projects/*/cutouts_auto/
+projects/*/review/
+projects/*/*.mp3
+projects/*/out/master*.mp4
+__pycache__/
