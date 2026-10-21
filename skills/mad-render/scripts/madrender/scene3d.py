@@ -188,7 +188,7 @@ class SceneRenderer:
         cam = Cam(pos, look, fov, roll, W, H)
         fog = sc.get("fog")
         fogc = np.array(fx.hex_rgb(fog.get("color", "#000000")), np.float32) if fog else None
-        dens = float(fog.get("density", 0.05)) if fog else 0.0
+        dens = _v(fog.get("density", 0.05), t, ctx, 0.05) if fog else 0.0
         dof = sc.get("dof")
         focus = _v(dof.get("focus", 6), t, ctx, 6) if dof else None
         aperture = float(dof.get("aperture", 1.0)) if dof else 0.0

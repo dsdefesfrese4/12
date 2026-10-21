@@ -78,7 +78,20 @@ def load_rgba(path, crop=None):
     return rgba
 
 
+def gradient_map(rgba, stops):
+    """Colourise a B/W plate: luminance -> shadow / mid / highlight colours (keeps ink, adds a palette)."""
+    cols = [np.array(fx.hex_rgb(c), np.float32) for c in stops]
+    xs = np.linspace(0, 1, len(cols))
+    lum = rgba[..., :3] @ np.array([0.299, 0.587, 0.114], np.float32)
+    lut_x = np.linspace(0, 1, 256)
+    lut = np.stack([np.interp(lut_x, xs, [c[i] for c in cols]) for i in range(3)], 1).astype(np.float32)
+    rgba[..., :3] = lut[np.clip(lum * 255, 0, 255).astype(np.uint8)]
+    return rgba
+
+
 def decorate(rgba, L):
+    if L.get("gmap"):
+        rgba = gradient_map(rgba, L["gmap"])
     if L.get("key_white"):
         lum = rgba[..., :3].mean(axis=2)
         k = float(L.get("key_white", 0.9)) if not isinstance(L.get("key_white"), bool) else 0.9
@@ -450,7 +463,9 @@ def slot_texture(R, L):
     yy, xx = np.mgrid[0:h, 0:w]
     hatch = (((xx + yy) // max(4, int(w / 60))) % 2).astype(np.float32)
     out[..., :3] = base * (0.85 + 0.15 * hatch[..., None])
-    rim = cv2.morphologyEx((a > 0.5).astype(np.uint8), cv2.MORPH_GRADIENT, np.ones((5, 5), np.uint8)).astype(np.float32)
+    rim = cv2.morphologyEx((a > 0.5).astype(np.uint8), cv2.MORPH_GRADIENT, np.ones((3, 3), np.uint8)).astype(np.float32)
+    yy2, xx2 = np.mgrid[0:h, 0:w]
+    rim *= (((xx2 + yy2) // max(6, int(w / 70))) % 2).astype(np.float32)   # dashed
     out[..., :3] = out[..., :3] * (1 - rim[..., None]) + np.array([0.35, 0.95, 1.0], np.float32) * rim[..., None]
     out[..., 3] = a * float(L.get("proxy_alpha", 0.18))
     ov = np.zeros((h, w), np.uint8)
@@ -458,7 +473,7 @@ def slot_texture(R, L):
                 max(1, int(w / 500)), cv2.LINE_AA)
     o = ov.astype(np.float32)[..., None] / 255
     out[..., :3] = out[..., :3] * (1 - o) + np.array([0.35, 0.95, 1.0], np.float32) * o
-    out[..., 3:4] = np.maximum(out[..., 3:4], np.maximum(o, rim[..., None] * 0.9))
+    out[..., 3:4] = np.maximum(out[..., 3:4], np.maximum(o * 0.6, rim[..., None] * 0.45))
     return out, False
 
 
@@ -467,7 +482,8 @@ def build(L, S, cam, t, ctx, R):
     kind = L.get("kind", "image")
     root = R.P.root
     if kind == "image":
-        key = ("img", L["src"], tuple(L.get("crop") or ()), L.get("frame"), L.get("feather"), L.get("key_white"), L.get("invert"))
+        key = ("img", L["src"], tuple(L.get("crop") or ()), L.get("frame"), L.get("feather"), L.get("key_white"), L.get("invert"),
+               tuple(L.get("gmap") or ()))
         lv = S.texture(key, lambda: decorate(load_rgba(R.P.abspath(L["src"]), L.get("crop")), L))
         return [quad(lv, L, cam, t, ctx)]
     if kind == "slot":
@@ -531,6 +547,28 @@ def build(L, S, cam, t, ctx, R):
         twist = np.cos(s * float(L.get("twist", 9)) + t * 1.5)
         d = lines_raster([P], [_v(L.get("width", 0.08), t, ctx, 0.08)], L.get("color", "#b8202c"), cam,
                          _v(L.get("opacity", 1.0), t, ctx, 1.0), shade=[twist])
+        return [d] if d else []
+    if kind == "thread":
+        # a cord strung through world points (sagging between them, gently swaying): links stations together
+        pts = [np.array(p, np.float64) for p in L["points"]]
+        sag = float(L.get("sag", 0.4))
+        sway = float(L.get("sway", 0.05))
+        poly = []
+        for i in range(len(pts) - 1):
+            a, b = pts[i], pts[i + 1]
+            for k in range(16):
+                q = k / 16
+                p = a + (b - a) * q
+                p[1] -= sag * 4 * q * (1 - q)
+                p[0] += sway * math.sin(t * 1.1 + i + q * 3) * 4 * q * (1 - q)
+                poly.append(p)
+        poly.append(pts[-1])
+        P = np.array(poly)
+        # only the part grown so far
+        g = float(np.clip(_v(L.get("grow", 1.0), t, ctx, 1.0), 0, 1))
+        n = max(2, int(len(P) * g))
+        d = lines_raster([P[:n]], [_v(L.get("width", 0.03), t, ctx, 0.03)], L.get("color", "#9a1c26"), cam,
+                         _v(L.get("opacity", 1.0), t, ctx, 1.0))
         return [d] if d else []
     if kind == "strings":
         topy = float(L.get("top", 8))
