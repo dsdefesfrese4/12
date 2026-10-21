@@ -1,0 +1,148 @@
+{
+ "profile": "oppressive",
+ "label": "压抑",
+ "scores": {
+  "oppressive": 6.18,
+  "hype": 1.46,
+  "healing": 0.15,
+  "suspense": 1.0,
+  "melancholic": 1.0
+ },
+ "features": {
+  "tempo": 161.5,
+  "mode": "minor",
+  "key": 3,
+  "mode_conf": 0.846,
+  "brightness_hz": 2221,
+  "loudness_db": -12.7,
+  "dynamic_range_db": 13.8,
+  "percussive": 0.251
+ },
+ "lyrics": {
+  "dark": 31,
+  "bright": 3,
+  "aggressive": 5,
+  "tender": 0
+ },
+ "reasons": [
+  "小调(0.846) → 偏暗",
+  "速度 161.5 快 → 节奏密，但情绪由歌词/剧情决定",
+  "歌词关键词 暗31 亮3 燃5 柔0",
+  "剧情标签：霸凌 自杀 杀人 绝望 母亲虐待 孤独 死 解脱"
+ ],
+ "limits": {
+  "label": "压抑",
+  "palette": {
+   "shadow": "#050505",
+   "mid": "#3a3833",
+   "highlight": "#cfc9bd",
+   "accent": "#5e0b10",
+   "saturation": 0.15,
+   "crush_blacks": 0.08
+  },
+  "camera": {
+   "max_speed": 0.35,
+   "prefer": [
+    "slow_dolly",
+    "creep_push",
+    "static_hold",
+    "dutch_tilt",
+    "crane_down"
+   ],
+   "forbid": [
+    "whip",
+    "spin",
+    "fast_orbit",
+    "slam_zoom"
+   ],
+   "handheld": 0.015,
+   "dutch_max_deg": 6
+  },
+  "cutting": {
+   "min_shot_beats": 4,
+   "typical_bars": [
+    2,
+    4
+   ],
+   "hits_per_minute": 3,
+   "hold_on_silence": true
+  },
+  "transitions": {
+   "allow": [
+    "cut",
+    "black",
+    "fade"
+   ],
+   "flash_max_total": 3,
+   "flash_color": "#ffffff"
+  },
+  "effects": {
+   "grain": 0.06,
+   "vignette": 0.7,
+   "flicker": 0.04,
+   "zoom_punch_max": 0.012,
+   "shake_max": 6,
+   "shake_freq": 2.5,
+   "rgb_split_max": 3,
+   "glow_max": 0.25,
+   "particles": [
+    "ash",
+    "dust"
+   ],
+   "particle_opacity": 0.35
+  },
+  "mg": {
+   "allow": [
+    "line",
+    "frame",
+    "grid",
+    "label",
+    "counter",
+    "glitch_blocks"
+   ],
+   "forbid": [
+    "ring",
+    "burst",
+    "ticker",
+    "bars",
+    "stripes",
+    "crosshair"
+   ],
+   "opacity_max": 0.35,
+   "stroke": 1.2
+  },
+  "typography": {
+   "fonts": {
+    "quiet": "ShipporiMinchoB1-Medium.ttf",
+    "heavy": "ZenOldMincho-Black.ttf"
+   },
+   "language": "ja",
+   "color": "#d6d0c4",
+   "opacity": 0.85,
+   "size_range": [
+    34,
+    78
+   ],
+   "in": [
+    "blur_in",
+    "fade",
+    "type"
+   ],
+   "out": [
+    "blur",
+    "fade"
+   ],
+   "idle": [
+    "none",
+    "jitter"
+   ],
+   "max_on_screen": 1,
+   "vertical_preferred": true
+  },
+  "light": {
+   "key": "low",
+   "god_rays_max": 0.3,
+   "temperature": "cold"
+  }
+ }
+}

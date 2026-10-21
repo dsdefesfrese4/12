@@ -336,6 +336,22 @@ def apply_pixel(f, e, t, u, frame_idx):
         return f * (1 - a) + d * a
     if typ == "particles":
         return _particles(f, e, t, u, env)
+    if typ == "flicker":
+        # projector-style luminance flicker + occasional dust/scratch specks
+        r = _rand(e.get("seed", 9), t, float(e.get("rate", 12)))
+        amt = float(e.get("amount", 0.04)) * env
+        out = f * (1 - amt * r.uniform(0, 1))
+        if e.get("specks", True) and r.uniform() < 0.35:
+            m = np.zeros((H, W), np.float32)
+            for _ in range(int(r.integers(1, 5))):
+                x, y = int(r.uniform(0, W)), int(r.uniform(0, H))
+                if r.uniform() < 0.3:
+                    cv2.line(m, (x, 0), (x + int(r.uniform(-8, 8) * u), H), float(r.uniform(0.2, 0.5)), max(1, int(u)), cv2.LINE_AA)
+                else:
+                    cv2.circle(m, (x, y), max(1, int(r.uniform(1, 3) * u)), float(r.uniform(0.3, 0.8)), -1, cv2.LINE_AA)
+            dark = r.uniform() < 0.6
+            out = out * (1 - m[..., None]) + (0.0 if dark else 0.9) * m[..., None]
+        return out
     if typ == "light_sweep":
         # a soft diagonal band of light crossing the frame once per trigger / per `period`
         period = float(e.get("period", 2.5))

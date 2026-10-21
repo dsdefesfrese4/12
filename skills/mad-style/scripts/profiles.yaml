@@ -1,0 +1,88 @@
+# Style profiles. The storyboard builder MUST read the chosen profile and stay inside its limits.
+oppressive:            # 压抑 / 致郁 / 绝望 — heavy, slow, suffocating
+  label: 压抑
+  palette: {shadow: "#050505", mid: "#3a3833", highlight: "#cfc9bd", accent: "#5e0b10", saturation: 0.15, crush_blacks: 0.08}
+  camera: {max_speed: 0.35, prefer: [slow_dolly, creep_push, static_hold, dutch_tilt, crane_down], forbid: [whip, spin, fast_orbit, slam_zoom],
+           handheld: 0.015, dutch_max_deg: 6}
+  cutting: {min_shot_beats: 4, typical_bars: [2, 4], hits_per_minute: 3, hold_on_silence: true}
+  transitions: {allow: [cut, black, fade], flash_max_total: 3, flash_color: "#ffffff"}
+  effects:
+    grain: 0.06
+    vignette: 0.7
+    flicker: 0.04            # projector luminance flicker
+    zoom_punch_max: 0.012
+    shake_max: 6
+    shake_freq: 2.5
+    rgb_split_max: 3
+    glow_max: 0.25
+    particles: [ash, dust]
+    particle_opacity: 0.35
+  mg:
+    allow: [line, frame, grid, label, counter, glitch_blocks]
+    forbid: [ring, burst, ticker, bars, stripes, crosshair]
+    opacity_max: 0.35
+    stroke: 1.2
+  typography:
+    fonts: {quiet: ShipporiMinchoB1-Medium.ttf, heavy: ZenOldMincho-Black.ttf}
+    language: ja
+    color: "#d6d0c4"
+    opacity: 0.85
+    size_range: [34, 78]
+    in: [blur_in, fade, type]
+    out: [blur, fade]
+    idle: [none, jitter]
+    max_on_screen: 1
+    vertical_preferred: true
+  light: {key: low, god_rays_max: 0.3, temperature: cold}
+
+hype:                  # 燃 — fast, punchy, bright accents
+  label: 燃
+  palette: {shadow: "#08080c", mid: "#4a3a6a", highlight: "#fff4e8", accent: "#ff2a3a", saturation: 0.9}
+  camera: {max_speed: 2.0, prefer: [whip, slam_zoom, fast_orbit, dolly_through], handheld: 0.04}
+  cutting: {min_shot_beats: 1, typical_bars: [0.5, 1], hits_per_minute: 30}
+  transitions: {allow: [cut, flash, whip_left, whip_right, zoom, glitch], flash_max_total: 99}
+  effects: {grain: 0.03, vignette: 0.4, zoom_punch_max: 0.06, shake_max: 24, shake_freq: 4, rgb_split_max: 12, glow_max: 0.8,
+            particles: [embers, dust, stars], particle_opacity: 0.8}
+  mg: {allow: [ring, burst, bars, ticker, stripes, crosshair, frame, line, counter, label, glitch_blocks], opacity_max: 1.0, stroke: 4}
+  typography: {fonts: {quiet: ZenKakuGothicNew-Black.ttf, heavy: DelaGothicOne-Regular.ttf}, language: ja, color: "#ffffff", opacity: 1,
+               size_range: [60, 220], in: [slam, scatter, glitch, stamp], out: [scatter, glitch], idle: [beat_pulse], max_on_screen: 3}
+  light: {key: high, god_rays_max: 0.8, temperature: warm}
+
+healing:               # 治愈 — soft, warm, airy
+  label: 治愈
+  palette: {shadow: "#2a2420", mid: "#a08a74", highlight: "#fff8ee", accent: "#ffb08a", saturation: 0.6}
+  camera: {max_speed: 0.4, prefer: [slow_dolly, float, crane_up], handheld: 0.01}
+  cutting: {min_shot_beats: 4, typical_bars: [2, 4], hits_per_minute: 2}
+  transitions: {allow: [cut, fade], flash_max_total: 2}
+  effects: {grain: 0.02, vignette: 0.3, zoom_punch_max: 0.008, shake_max: 0, shake_freq: 2, rgb_split_max: 0, glow_max: 0.6,
+            particles: [dust, petals], particle_opacity: 0.6}
+  mg: {allow: [line, frame, label], opacity_max: 0.4, stroke: 1.5}
+  typography: {fonts: {quiet: ShipporiMinchoB1-Medium.ttf, heavy: ShipporiMinchoB1-ExtraBold.ttf}, language: ja, color: "#fff8ee",
+               opacity: 0.9, size_range: [40, 90], in: [fade, blur_in, rise], out: [fade], idle: [float], max_on_screen: 1}
+  light: {key: high, god_rays_max: 0.6, temperature: warm}
+
+suspense:              # 悬疑 / 惊悚
+  label: 悬疑
+  palette: {shadow: "#020406", mid: "#24343a", highlight: "#c8d6d8", accent: "#a01818", saturation: 0.25}
+  camera: {max_speed: 0.6, prefer: [creep_push, dutch_tilt, static_hold, snap_zoom], handheld: 0.02, dutch_max_deg: 10}
+  cutting: {min_shot_beats: 2, typical_bars: [1, 2], hits_per_minute: 8}
+  transitions: {allow: [cut, black, glitch], flash_max_total: 6}
+  effects: {grain: 0.05, vignette: 0.65, flicker: 0.06, zoom_punch_max: 0.02, shake_max: 10, shake_freq: 3, rgb_split_max: 6,
+            glow_max: 0.2, particles: [dust], particle_opacity: 0.3}
+  mg: {allow: [line, frame, grid, label, counter, crosshair, glitch_blocks], opacity_max: 0.5, stroke: 1.5}
+  typography: {fonts: {quiet: ShipporiMinchoB1-Medium.ttf, heavy: ZenOldMincho-Black.ttf}, language: ja, color: "#c8d6d8", opacity: 0.85,
+               size_range: [34, 110], in: [type, glitch, blur_in], out: [glitch, cut], idle: [jitter, flicker], max_on_screen: 1}
+  light: {key: low, god_rays_max: 0.35, temperature: cold}
+
+melancholic:           # 抒情 / 伤感
+  label: 伤感
+  palette: {shadow: "#0a0c12", mid: "#4a5060", highlight: "#e8eaf0", accent: "#8aa0c8", saturation: 0.35}
+  camera: {max_speed: 0.5, prefer: [slow_dolly, crane_down, rack_focus], handheld: 0.01}
+  cutting: {min_shot_beats: 4, typical_bars: [2, 4], hits_per_minute: 4}
+  transitions: {allow: [cut, fade, black], flash_max_total: 4}
+  effects: {grain: 0.04, vignette: 0.55, zoom_punch_max: 0.015, shake_max: 4, shake_freq: 2.5, rgb_split_max: 2, glow_max: 0.45,
+            particles: [dust, snow, rain], particle_opacity: 0.5}
+  mg: {allow: [line, frame, label], opacity_max: 0.35, stroke: 1.2}
+  typography: {fonts: {quiet: ShipporiMinchoB1-Medium.ttf, heavy: ShipporiMinchoB1-ExtraBold.ttf}, language: ja, color: "#e8eaf0",
+               opacity: 0.85, size_range: [36, 90], in: [blur_in, fade], out: [blur, fade], idle: [none], max_on_screen: 1}
+  light: {key: low, god_rays_max: 0.4, temperature: cold}

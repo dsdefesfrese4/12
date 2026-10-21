@@ -55,3 +55,25 @@ texts: [{start, end, text, anim: pop|slam|typewriter|fade|slide_up|glitch, pos: 
 ## 人偶 puppet（作用在 layer / char 上）
 `{step: 1|2|3, pins: [{center, radius, hard, pivot, rotate, move: [x,y], scale, lag}]}` — 头摆/点头、头发延迟跟随、肩膀呼吸。
 `step: 3` = 一拍三（原画感），相机仍逐帧动。更完整的分部件骨骼（眨眼/视线/嘴型/伪3D转头/头发物理）见 `scripts/madrender/rig.py`。
+
+## 3D 场景（shot.scene，v2）
+真透视摄像机 + 图版/元素放在真实深度，自带景深、雾、方向光、体积光、3D 粒子。详细字段见 `scripts/madrender/scene3d.py`、`elements.py` 文件头。
+```yaml
+scene:
+  fov: 40
+  fog: {color: "#030303", density: 0.02}
+  dof: {focus: 10, aperture: 1.4}
+  light: {dir: [0.35, -0.55, 1], color: "#ece6da", ambient: 0.86}
+  camera: {keys: [{at: 0, pos: [0,0,0], look: [0,0,10], roll: 0}, {at: 1, pos: [0.2,0,0.9], look: [0,0,10], ease: sine}], handheld: 0.015}
+  layers:
+    - {kind: image, src: panels/x.png, pos: [0,0,10], width: 9, rot: [0,0,0], frame: border}
+    - {kind: slot, slot: x, pos: [0,0,9.4], width: 8.5}        # 抠图到位前是半透明轮廓占位
+    - {kind: particles, preset: dust, volume: [[-7,7],[-4,4],[1,11]]}
+    - {kind: vines|ribbon|strings|cage|blood|shatter|words|glow|clock|text, ...}
+```
+## MG 层（shot.mg / style.mg）与日文动态字（texts[].kinetic）
+- `mg.py`：ring burst bars frame line crosshair grid stripes ticker counter glitch_blocks invert_rect halftone label
+- `kinetic.py`：逐字 in/out/idle 动画、关键词强调色、巨型描边底字、下划线/框线描画、色散、阴影
+- 风格限制由 mad-style 决定（压抑只用 frame/line/grid/counter/label + blur_in/fade 的明朝体）。
+## 语音/音效混入
+`meta.sfx: [{file: assets/voice_1.wav, at: 100.28, gain: 1.6, duck: 0.3, from: 0, to: 0}]` — 在该时间点叠加，原曲压低到 duck。

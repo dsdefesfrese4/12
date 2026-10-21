@@ -22,6 +22,9 @@ import numpy as np
 from . import camera as cam_mod
 from . import effects as fx
 from . import puppet
+from .kinetic import KineticText
+from .mg import MGLayer
+from .scene3d import SceneRenderer
 from .text import TextItem
 from .timeline import Project
 
@@ -52,7 +55,11 @@ class Renderer:
             if tr["type"] not in fx.TRANSITIONS:
                 raise ValueError(f"shot {s['id']}: unknown transition {tr['type']!r}; options {sorted(fx.TRANSITIONS)}")
             s["_tr"] = tr
-        self.texts = [TextItem(tx, P, self.u) for tx in P.texts]
+        self.texts = [KineticText(tx, P, self.u) if tx.get("kinetic") else TextItem(tx, P, self.u) for tx in P.texts]
+        for s in P.shots:
+            s["_mg"] = [MGLayer(m, self, s["_start"], s["_end"]) for m in (s.get("mg") or [])]
+        self.global_mg = [MGLayer(m, self, P.t0, P.t1) for m in (P.style.get("mg") or [])]
+        self.scene = SceneRenderer(self)
 
     def _prep_fx(self, e, start, end):
         e = dict(e)
@@ -115,6 +122,16 @@ class Renderer:
             if e["type"] == "rot_punch" and e["_trig"]:
                 e["_flip"] = sum(1 for x in e["_trig"] if x <= t)
         dx, dy, zp, rp = fx.geometry(s["_fx"], t, u)
+        if s.get("scene"):
+            ctx = puppet.Ctx(P, s["_start"], s["_end"])
+            frame = self.scene.render(s, t, n, ctx)
+            if abs(dx) > 0.01 or abs(dy) > 0.01 or abs(zp - 1) > 1e-4 or abs(rp) > 0.01:
+                frame = fx.warp(frame, W, H, zp, W / 2, H / 2, rp, dx, dy)
+            for e in s["_fx"]:
+                frame = fx.apply_pixel(frame, e, t, u, n)
+            for m in s["_mg"]:
+                frame = m.draw(frame, t, n)
+            return frame
         fit = s.get("fit", "cover")
         zoom_vals = cam["zoom"] if not cam.get("keys") else [k.get("zoom", 1) for k in cam["keys"]]
         zmax = max(zoom_vals) * 1.15
@@ -213,6 +230,8 @@ class Renderer:
             frame = frame * (1 - la) + limg * la
         for e in s["_fx"]:
             frame = fx.apply_pixel(frame, e, t, u, n)
+        for m in s["_mg"]:
+            frame = m.draw(frame, t, n)
         if placeholder is not None and self.show_slots:
             frame = self._draw_slot(frame, placeholder, M, bw, bh, crop)
         if s.get("card"):
@@ -317,6 +336,8 @@ class Renderer:
             if e["type"] in fx.GEOMETRIC:
                 continue
             f = fx.apply_pixel(f, e, t, self.u, n)
+        for m in self.global_mg:
+            f = m.draw(f, t, n)
         for tx in self.texts:
             f = tx.draw(f, t, P.T)
         return f
@@ -384,12 +405,32 @@ def render_video(project, out, scale=1.0, t_from=None, t_to=None, jobs=None, crf
     audio = P.abspath(P.meta.get("audio"))
     if audio and os.path.exists(audio):
         ss = P.t0 + n0 / P.fps
-        cmd += ["-ss", f"{ss:.4f}", "-t", f"{(n1 - n0) / P.fps:.4f}", "-i", audio,
-                "-map", "0:v", "-map", "1:a", "-c:a", "aac", "-b:a", "256k", "-shortest"]
-        if P.meta.get("audio_fade", 0.0):
-            fd = float(P.meta["audio_fade"])
-            dur = (n1 - n0) / P.fps
-            cmd += ["-af", f"afade=t=in:d=0.05,afade=t=out:st={max(0, dur - fd):.3f}:d={fd}"]
+        dur = (n1 - n0) / P.fps
+        cmd += ["-ss", f"{ss:.4f}", "-t", f"{dur:.4f}", "-i", audio]
+        sfx = [x for x in (P.meta.get("sfx") or []) if ss - 10 <= P.T(x["at"]) <= ss + dur]
+        if not sfx:
+            cmd += ["-map", "0:v", "-map", "1:a", "-c:a", "aac", "-b:a", "256k", "-shortest"]
+        else:
+            # voice lines / sound effects over the song; the song ducks under each one
+            fl, labels, duck = [], [], []
+            for k, x in enumerate(sfx):
+                cmd += ["-i", P.abspath(x["file"])]
+                at = P.T(x["at"]) - ss
+                a0, a1 = float(x.get("from", 0)), float(x.get("to", 0)) or None
+                trim = f"atrim=start={a0}" + (f":end={a1}" if a1 else "") + ",asetpts=PTS-STARTPTS"
+                fl.append(f"[{k + 2}:a]{trim},volume={float(x.get('gain', 1.0))},adelay={max(0, int(at * 1000))}:all=1[s{k}]")
+                labels.append(f"[s{k}]")
+                if a1:
+                    L = a1 - a0
+                else:
+                    fd = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0",
+                                                        P.abspath(x["file"])]).decode().strip())
+                    L = fd - a0
+                g = float(x.get("duck", 0.35))
+                duck.append(f"volume=enable='between(t,{at - 0.05:.3f},{at + L + 0.1:.3f})':volume={g}")
+            fl.append(f"[1:a]{','.join(duck)}[m]")
+            fl.append(f"[m]{''.join(labels)}amix=inputs={len(labels) + 1}:normalize=0:duration=first[aout]")
+            cmd += ["-filter_complex", ";".join(fl), "-map", "0:v", "-map", "[aout]", "-c:a", "aac", "-b:a", "256k"]
     cmd += ["-c:v", "copy", "-movflags", "+faststart", out]
     subprocess.check_call(cmd)
     import shutil

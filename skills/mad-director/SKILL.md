@@ -27,13 +27,24 @@ Claude 无法操作 AE，所以这套 skill 用**代码渲染出成片**：一�
 
 ## 流程
 
+0. **风格判定（先决条件）**：读完原作、拿到歌词后先跑 `mad-style`，得到 `style.json`。之后所有设计都在它的 limits 内。
+   结构也要先和用户对齐：歌是悲剧就按悲剧收尾（本作：第一段到真理奈之死、第二段真理奈第一次轮回、第三段到静香自杀，
+   以 “唯 死以解脱” 结束在上吊），不要为了“温暖结局”违背歌意。
 1. **素材**：解压 → `pages/`；`mad-assets/split_panels.py pages/*.jpg -o panels`（日漫默认右→左阅读序）。
 2. **读剧情**：用 6 页/张的拼图（每页标 id）逐张读完全部章节，写 `story_notes.md`：每话要点 + 名场面画格 id + 情绪曲线。
 3. **音乐**：`mad-beat/analyze_beats.py song.mp3 -o beats.json`（速度减半/加倍时加 `--bpm`）；
    有歌词时 `mad-beat/transcribe.py song.mp3 --prompt-file lyrics.txt`（faster-whisper，词级时间戳），
    然后把官方歌词逐句对到 ASR 时间写成 `lyrics_timed.json`（`parts` = 同一句里要逐词卡点的子句开始时间）。
    再按小节打印能量/人声强度表，找出：前奏、主歌、副歌爆点、骤停、最后的 drop。
-4. **分镜**（核心）：参照 `reference/storyboard_template.py`（本作品的完整实例）写 `build_storyboard.py`：
+4. **分镜**（核心）：v2 起用 3D 场景设计，参照 `reference/build_v2_template.py`；配方函数：
+   - `creep`：一张图版立在景深里，镜头缓慢推进 + 前景尘埃视差（压抑的默认镜头）
+   - `floor`：图版平放地面，俯拍缓慢下压（倒地/尸体/血泊）
+   - `corridor`：多格回忆画框悬在黑暗两侧，镜头在中间缓慢穿行
+   - `void`：自由布景（漂浮物件、螺旋时间隧道、沿丝带上摇……）
+   - 自设计元素（mad-render/elements.py）：荆棘生长、丝带、提线、笼栅、血迹扩散、玻璃碎裂、漂浮恶言（日文）、光晕
+   - 每个元素必须对应一句歌词或剧情母题（藤蔓↔绝望的藤蔓；提线↔不如木偶；丝带↔仲直りリボン/上吊；笼栅↔困兽）。
+   - 原作语音（`meta.sfx`）可以在对应歌词处混入，音乐自动压低。
+   旧的平面版（v1）参考 `reference/storyboard_template.py`：
    - 段落表 `SECTIONS`：每段一个配色（duotone 阴影/中间/高光）、粒子（stars/dust/ash/snow/rain）、能量等级 0–3。
    - 镜头表：`shot(开始秒, 画格id, cam=..., fx=[...], tr=..., char=True, card={...}, note="歌词｜画面")`。
    - 规则：切点放在小节线/歌词起点；副歌大爆点（能量跳变的小节）放全篇最有冲击力的页 + flash + slam；
@@ -42,7 +53,7 @@ Claude 无法操作 AE，所以这套 skill 用**代码渲染出成片**：一�
    - 竖版整页用 `pan_up/pan_down` 或关键帧纵向移动，或 `card`（3D 浮空卡片，`ry/rx` 随时间转）。
    - 人物为主体的镜头 `char=True`：生成抠图槽位（占位框），抠图完成后自动变成可视差的分层。
 5. **初版抠图**：`mad-character/auto_cutout.py <project> <槽位...>` → `cutouts_auto/`（也生成占位框位置）。
-6. **渲染**：`python3 build_storyboard.py`；`python3 -m madrender.render project.yaml --contact` 看全部镜头缩略图 →
+6. **渲染**（交付只导 720p：`--scale 0.6667`；代码默认仍是 1080p）：`python3 build_storyboard.py`；`python3 -m madrender.render project.yaml --contact` 看全部镜头缩略图 →
    修 → 全片渲染（1080p/24fps 约 5 秒渲 1 秒，4 核）→ 再出一个 720p 分享版（ffmpeg crf 25 + hqdn3d，约 80MB）。
 7. **检查**：`mad-review/smoothness.py out.mp4 --beats beats.json --project project.yaml` 报告无理由的速度突变；
    每段抽帧看构图（脸有没有被裁掉、字幕是否压在主体上）。
